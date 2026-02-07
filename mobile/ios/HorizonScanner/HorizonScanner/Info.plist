@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Horizon needs camera access to scan your home layout using LiDAR.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Horizon connects to your local backend server.</string>
+    <key>CFBundleName</key>
+    <string>HorizonScanner</string>
+    <key>CFBundleDisplayName</key>
+    <string>Horizon Scanner</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.horizon.scanner</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+</dict>
+</plist>

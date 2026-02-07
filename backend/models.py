@@ -20,6 +20,9 @@ class Room(Base):
     id = Column(Integer, primary_key=True, index=True)
     home_id = Column(Integer, ForeignKey("homes.id"), nullable=False)
     name = Column(String, nullable=False)
+    floor_polygon_json = Column(Text, nullable=True)  # JSON [[x,y], ...] polygon
+    height_m = Column(Float, nullable=True, default=2.8)
+    furniture_json = Column(Text, nullable=True)       # JSON array of furniture items
     home = relationship("Home", back_populates="rooms")
     devices = relationship("Device", back_populates="room", cascade="all, delete-orphan")
 

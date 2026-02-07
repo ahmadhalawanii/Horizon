@@ -224,3 +224,45 @@ class UserPreferenceOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ─── Layout Import (from iOS LiDAR scanner) ──────────────
+class FurnitureItemIn(BaseModel):
+    type: str
+    center: list[float]  # [x, y]
+    size: list[float]    # [width, depth]
+
+
+class RoomLayoutIn(BaseModel):
+    id: str
+    name: str
+    polygon: list[list[float]]  # [[x,y], ...]
+    height_m: float = 2.8
+    furniture: list[FurnitureItemIn] = []
+
+
+class LayoutImportIn(BaseModel):
+    home_name: str
+    rooms: list[RoomLayoutIn]
+
+
+class LayoutImportOut(BaseModel):
+    home_id: int
+    rooms_created: int
+    rooms_updated: int
+
+
+# ─── Layout State (for 3D frontend view) ─────────────────
+class RoomGeometryOut(BaseModel):
+    room_id: int
+    room_name: str
+    polygon: list[list[float]]
+    height_m: float
+    furniture: list[dict] = []
+    devices: list[dict] = []
+
+
+class LayoutStateOut(BaseModel):
+    home_id: int
+    home_name: str
+    rooms: list[RoomGeometryOut]

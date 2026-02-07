@@ -155,14 +155,52 @@ def seed():
         db.add(home)
         db.flush()
 
-        # 2. Create Rooms
-        rooms = {
-            "Living Room": Room(id=1, home_id=1, name="Living Room"),
-            "Bedroom": Room(id=2, home_id=1, name="Bedroom"),
-            "Kitchen": Room(id=3, home_id=1, name="Kitchen"),
-            "Garage": Room(id=4, home_id=1, name="Garage"),
+        # 2. Create Rooms with floor geometry (for 3D view)
+        room_geometries = {
+            "Living Room": {
+                "polygon": [[0,0],[6,0],[6,5],[0,5]],
+                "height_m": 2.8,
+                "furniture": [
+                    {"type": "sofa", "center": [3, 4], "size": [2.4, 1.0]},
+                    {"type": "tv_unit", "center": [3, 0.4], "size": [1.8, 0.5]},
+                    {"type": "coffee_table", "center": [3, 2.5], "size": [1.2, 0.6]},
+                ],
+            },
+            "Bedroom": {
+                "polygon": [[6.2,0],[10.2,0],[10.2,4],[6.2,4]],
+                "height_m": 2.8,
+                "furniture": [
+                    {"type": "bed", "center": [8.2, 2], "size": [2.0, 1.6]},
+                    {"type": "wardrobe", "center": [6.6, 2], "size": [0.6, 2.0]},
+                    {"type": "nightstand", "center": [9.8, 0.8], "size": [0.5, 0.4]},
+                ],
+            },
+            "Kitchen": {
+                "polygon": [[0,5.2],[4,5.2],[4,8.2],[0,8.2]],
+                "height_m": 2.8,
+                "furniture": [
+                    {"type": "counter", "center": [2, 5.6], "size": [3.5, 0.6]},
+                    {"type": "dining_table", "center": [2, 7.2], "size": [1.5, 1.0]},
+                    {"type": "fridge", "center": [0.4, 6.5], "size": [0.7, 0.7]},
+                ],
+            },
+            "Garage": {
+                "polygon": [[4.2,5.2],[10.2,5.2],[10.2,8.2],[4.2,8.2]],
+                "height_m": 3.0,
+                "furniture": [
+                    {"type": "car_space", "center": [7.2, 6.7], "size": [4.5, 2.2]},
+                ],
+            },
         }
-        for r in rooms.values():
+        rooms = {}
+        for i, (name, geo) in enumerate(room_geometries.items(), 1):
+            r = Room(
+                id=i, home_id=1, name=name,
+                floor_polygon_json=json.dumps(geo["polygon"]),
+                height_m=geo["height_m"],
+                furniture_json=json.dumps(geo["furniture"]),
+            )
+            rooms[name] = r
             db.add(r)
         db.flush()
 

@@ -34,6 +34,7 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(prefs),
     }),
+  getLayoutState: () => request<LayoutState>("/layout/state"),
 };
 
 // ─── Twin State (physics-computed, not raw DB) ───────────
@@ -181,4 +182,20 @@ export interface UserPreferences {
   ev_target_soc: number;
   max_shift_minutes: number;
   mode: "comfort" | "balanced" | "saver";
+}
+
+// ─── Layout (3D view) ────────────────────────────────────
+export interface LayoutState {
+  home_id: number;
+  home_name: string;
+  rooms: RoomGeometry[];
+}
+
+export interface RoomGeometry {
+  room_id: number;
+  room_name: string;
+  polygon: number[][];
+  height_m: number;
+  furniture: { type: string; center: number[]; size: number[] }[];
+  devices: { device_id: number; type: string; name: string; status: string; power_kw: number }[];
 }

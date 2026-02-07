@@ -18,6 +18,8 @@ from backend.schemas import (
     SimulateOut, KpiOut,
     RecommendationOut,
     UserPreferenceIn, UserPreferenceOut,
+    LayoutImportIn, LayoutImportOut,
+    LayoutStateOut, RoomGeometryOut,
 )
 from backend.config import get_settings
 from backend.ws_manager import manager
@@ -336,3 +338,99 @@ def get_telemetry(device_id: int, hours: int = Query(2, ge=1, le=48), db: Sessio
         }
         for r in rows
     ]
+
+
+# ─── Layout Import (from iOS LiDAR scanner) ──────────────
+@router.post("/layout/import", response_model=LayoutImportOut)
+def import_layout(body: LayoutImportIn, db: Session = Depends(get_db)):
+    """
+    Import a home layout from the iOS LiDAR scanner.
+    Creates or updates home + rooms with floor polygon geometry.
+    """
+    # Find or create home
+    home = db.query(Home).filter(Home.name == body.home_name).first()
+    if not home:
+        home = Home(name=body.home_name)
+        db.add(home)
+        db.flush()
+
+    rooms_created = 0
+    rooms_updated = 0
+
+    for room_in in body.rooms:
+        existing = db.query(Room).filter(
+            Room.home_id == home.id, Room.name == room_in.name
+        ).first()
+
+        polygon_json = json.dumps(room_in.polygon)
+        furniture_json = json.dumps([f.model_dump() for f in room_in.furniture])
+
+        if existing:
+            existing.floor_polygon_json = polygon_json
+            existing.height_m = room_in.height_m
+            existing.furniture_json = furniture_json
+            rooms_updated += 1
+        else:
+            new_room = Room(
+                home_id=home.id,
+                name=room_in.name,
+                floor_polygon_json=polygon_json,
+                height_m=room_in.height_m,
+                furniture_json=furniture_json,
+            )
+            db.add(new_room)
+            rooms_created += 1
+
+    db.commit()
+    return LayoutImportOut(
+        home_id=home.id,
+        rooms_created=rooms_created,
+        rooms_updated=rooms_updated,
+    )
+
+
+# ─── Layout State (for 3D frontend) ──────────────────────
+@router.get("/layout/state", response_model=LayoutStateOut)
+def get_layout_state(db: Session = Depends(get_db)):
+    """
+    Returns the home layout with room geometry for the 3D view.
+    Includes device positions for marker placement.
+    """
+    home = db.query(Home).first()
+    if not home:
+        raise HTTPException(404, "No home found")
+
+    rooms_db = db.query(Room).filter(Room.home_id == home.id).all()
+    room_geos = []
+
+    for room in rooms_db:
+        polygon = json.loads(room.floor_polygon_json) if room.floor_polygon_json else []
+        furniture = json.loads(room.furniture_json) if room.furniture_json else []
+
+        # Get devices in this room
+        devs = db.query(Device).filter(Device.room_id == room.id).all()
+        device_list = [
+            {
+                "device_id": d.id,
+                "type": d.type,
+                "name": d.name,
+                "status": d.status,
+                "power_kw": d.power_kw,
+            }
+            for d in devs
+        ]
+
+        room_geos.append(RoomGeometryOut(
+            room_id=room.id,
+            room_name=room.name,
+            polygon=polygon,
+            height_m=room.height_m or 2.8,
+            furniture=furniture,
+            devices=device_list,
+        ))
+
+    return LayoutStateOut(
+        home_id=home.id,
+        home_name=home.name,
+        rooms=room_geos,
+    )

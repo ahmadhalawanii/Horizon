@@ -1,22 +1,24 @@
 # Horizon — AI-Powered Home Energy Digital Twin
 
 > Comfort-first energy optimization for UAE smart villas. Built for hackathon demo.
+> Now with **iPhone LiDAR scanning** and **3D digital twin visualization**.
 
 ```
-                    ┌─────────────────────────────────────┐
-                    │           HORIZON STACK              │
-                    ├──────────┬────────────┬──────────────┤
-                    │ Frontend │  Backend   │   ML Engine  │
-                    │ React+TS │  FastAPI   │  Forecasting │
-                    │ Tailwind │  SQLite    │  Optimizer   │
-                    │ Recharts │  WebSocket │  KPI Utils   │
-                    └────┬─────┴─────┬──────┴──────┬───────┘
-                         │           │             │
-                    ┌────▼───────────▼─────────────▼───────┐
-                    │        SQLite Database                │
-                    │  homes · rooms · devices · telemetry  │
-                    │  scenarios · recommendations · prefs  │
-                    └──────────────────────────────────────┘
+  ┌─────────────┐    ┌──────────────────────────────────────────┐
+  │  iOS App     │    │              HORIZON STACK                │
+  │  LiDAR Scan  │───►│  ┌──────────┬──────────┬──────────────┐  │
+  │  RoomPlan    │    │  │ Frontend │ Backend  │  ML Engine   │  │
+  └─────────────┘    │  │ React+TS │ FastAPI  │  Digital Twin │  │
+                     │  │ Three.js │ SQLite   │  Forecasting │  │
+                     │  │ Tailwind │ WebSocket│  Optimizer   │  │
+                     │  └────┬─────┴────┬─────┴──────┬───────┘  │
+                     │       │          │            │           │
+                     │  ┌────▼──────────▼────────────▼────────┐  │
+                     │  │          SQLite Database              │  │
+                     │  │  homes · rooms (+ geometry) · devices │  │
+                     │  │  telemetry · scenarios · preferences  │  │
+                     │  └──────────────────────────────────────┘  │
+                     └──────────────────────────────────────────┘
 ```
 
 ## What Horizon Does
@@ -190,6 +192,46 @@ cd frontend && npm run typecheck
 
 ---
 
+## iPhone LiDAR Scanning
+
+Horizon includes a companion iOS app that uses Apple's RoomPlan API to scan your home:
+
+1. Open **Horizon Scanner** on a LiDAR-enabled iPhone (12 Pro+)
+2. Tap **Start Scan** and walk around a room
+3. Review the detected walls and furniture
+4. Tap **Send to Horizon** to upload the layout
+5. Open the web app — the **3D digital twin view** appears automatically
+
+No LiDAR? Tap **Use Sample Scan** for a pre-built Villa A layout.
+
+See `/docs/mobile_lidar.md` for full setup instructions.
+
+---
+
+## 3D Digital Twin View
+
+The Console page now includes a **Sims-like 3D top-down view** of the home:
+- Floor plans rendered from room polygon geometry
+- Walls extruded to room height
+- Furniture shown as semi-transparent blocks
+- Device markers (AC ❄, EV ⚡, Water ♨, Washer ◎) with status glow
+- Click a room to select it and filter the device list
+- Pan, zoom, and rotate with mouse/touch controls
+
+Works on both desktop and mobile browsers.
+
+---
+
+## Mobile-Friendly Design
+
+The web app is fully responsive:
+- **Desktop**: Left sidebar navigation, 3-column Console layout
+- **Mobile (<768px)**: Bottom tab navigation, stacked layout
+- Touch-friendly buttons (44px minimum), swipeable charts
+- 3D view adapts to screen size
+
+---
+
 ## Limitations (Hackathon Scope)
 
 - Forecasting uses deterministic heuristic (not ML model)
@@ -198,6 +240,7 @@ cd frontend && npm run typecheck
 - No authentication
 - No real tariff API integration
 - Optimization is rule-based, not true mathematical optimization
+- iOS app requires LiDAR-enabled iPhone (demo mode available without)
 
 ## Roadmap
 
@@ -205,5 +248,8 @@ cd frontend && npm run typecheck
 - [ ] Multi-home support
 - [ ] DEWA tariff API integration
 - [ ] Real smart home integration (Home Assistant, Matter)
-- [ ] Mobile app
+- [x] Mobile companion app (iOS LiDAR scanner)
+- [x] 3D digital twin visualization
+- [x] Responsive mobile web design
 - [ ] Battery storage optimization
+- [ ] Multi-room LiDAR scanning in a single session
