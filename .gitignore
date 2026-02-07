@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Frontend (React/Vite)
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Backend (Python)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local databases / generated ML artifacts
+*.sqlite
+*.sqlite3
+*.db
+models/
+artifacts/
+mlruns/
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Logs
+*.log
