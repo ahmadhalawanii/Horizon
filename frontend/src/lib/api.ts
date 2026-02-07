@@ -35,6 +35,11 @@ export const api = {
       body: JSON.stringify(prefs),
     }),
   getLayoutState: () => request<LayoutState>("/layout/state"),
+  postLayoutImport: (layout: LayoutImport) =>
+    request<LayoutImportResult>("/layout/import", {
+      method: "POST",
+      body: JSON.stringify(layout),
+    }),
 };
 
 // ─── Twin State (physics-computed, not raw DB) ───────────
@@ -198,4 +203,22 @@ export interface RoomGeometry {
   height_m: number;
   furniture: { type: string; center: number[]; size: number[] }[];
   devices: { device_id: number; type: string; name: string; status: string; power_kw: number }[];
+}
+
+// ─── Layout Import ───────────────────────────────────────
+export interface LayoutImport {
+  home_name: string;
+  rooms: {
+    id: string;
+    name: string;
+    polygon: number[][];
+    height_m: number;
+    furniture: { type: string; center: number[]; size: number[] }[];
+  }[];
+}
+
+export interface LayoutImportResult {
+  home_id: number;
+  rooms_created: number;
+  rooms_updated: number;
 }

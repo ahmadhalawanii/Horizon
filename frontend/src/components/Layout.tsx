@@ -4,6 +4,7 @@ import clsx from "clsx";
 
 const NAV_ITEMS = [
   { to: "/overview", label: "Overview", shortLabel: "Home", icon: "◈" },
+  { to: "/scan", label: "Scan Home", shortLabel: "Scan", icon: "📱" },
   { to: "/console", label: "Digital Twin Console", shortLabel: "Twin", icon: "⬡" },
   { to: "/simulator", label: "Impact Simulator", shortLabel: "Simulate", icon: "△" },
   { to: "/actions", label: "Action Log", shortLabel: "Actions", icon: "☰" },

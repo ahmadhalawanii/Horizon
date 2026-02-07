@@ -4,6 +4,7 @@ import Overview from "./pages/Overview";
 import Console from "./pages/Console";
 import Simulator from "./pages/Simulator";
 import Actions from "./pages/Actions";
+import Scan from "./pages/Scan";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/console" element={<Console />} />
         <Route path="/simulator" element={<Simulator />} />
         <Route path="/actions" element={<Actions />} />
+        <Route path="/scan" element={<Scan />} />
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Route>
     </Routes>
