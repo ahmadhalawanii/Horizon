@@ -1,6 +1,6 @@
 """All API routes for the Horizon backend."""
 import json
-import asyncio
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import Home, Room, Device, Telemetry, Recommendation, Scenario, UserPreference
 from backend.schemas import (
-    TwinStateOut, HomeOut, RoomOut, DeviceOut,
+    TwinStateOut,
+    DeviceOut, RoomOut, HomeOut,
     TelemetryIn,
     ForecastPoint,
     OptimizeIn, OptimizeOut, ActionOut,
@@ -20,58 +21,67 @@ from backend.schemas import (
 )
 from backend.config import get_settings
 from backend.ws_manager import manager
+from backend.twin_engine import get_twin, twin_ingest, twin_state, twin_update_preferences
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger("horizon.routes")
 
 
 # ─── 1) Health ────────────────────────────────────────────
 @router.get("/health")
 def health():
-    return {"status": "ok", "service": "horizon-backend"}
+    try:
+        twin = get_twin()
+        step_count = twin._step_count
+        return {
+            "status": "ok",
+            "service": "horizon-backend",
+            "twin_active": True,
+            "twin_steps": step_count,
+        }
+    except RuntimeError:
+        return {"status": "ok", "service": "horizon-backend", "twin_active": False}
 
 
-# ─── 2) Twin State ───────────────────────────────────────
+# ─── 2) Twin State (from live model, NOT raw DB) ─────────
 @router.get("/twin/state", response_model=TwinStateOut)
-def twin_state(db: Session = Depends(get_db)):
-    home = db.query(Home).first()
-    if not home:
-        raise HTTPException(404, "No home found. Run seed first.")
-    rooms = db.query(Room).filter(Room.home_id == home.id).all()
-    devices_by_room: dict[str, list[DeviceOut]] = {}
-    for room in rooms:
-        devs = db.query(Device).filter(Device.room_id == room.id).all()
-        devices_by_room[str(room.id)] = [
-            DeviceOut(
-                id=d.id, room_id=d.room_id, type=d.type, name=d.name,
-                status=d.status, power_kw=d.power_kw,
-                setpoint=d.setpoint,
-                metadata_json=json.loads(d.metadata_json) if d.metadata_json else None,
-            )
-            for d in devs
-        ]
-    return TwinStateOut(
-        home=HomeOut(id=home.id, name=home.name),
-        rooms=[RoomOut(id=r.id, home_id=r.home_id, name=r.name) for r in rooms],
-        devices_by_room=devices_by_room,
-    )
+def get_twin_state():
+    """
+    Returns the full computed state of the digital twin.
+
+    This is NOT reading database rows — it's the twin model's
+    continuously computed view of the home: room temperatures from
+    thermal dynamics, device states from physics models, energy
+    accumulation, comfort metrics.
+    """
+    try:
+        state = twin_state()
+    except RuntimeError:
+        raise HTTPException(503, "Twin model not initialized. Run `make seed` then restart backend.")
+    return state
 
 
-# ─── 3) Twin Update (+ WS broadcast) ────────────────────
+# ─── 3) Twin Update (feed telemetry → twin model → WS) ──
 @router.post("/twin/update")
 async def twin_update(body: TelemetryIn, db: Session = Depends(get_db)):
+    """
+    Feed a telemetry reading into the digital twin.
+
+    The twin's physics model steps forward: thermal dynamics update,
+    device models compute new derived values, energy accumulates.
+    The computed result is broadcast via WebSocket.
+    """
     device = db.query(Device).filter(Device.id == body.device_id).first()
     if not device:
         raise HTTPException(404, f"Device {body.device_id} not found")
 
-    # Update device current state
+    # Update device current state in DB (raw reading)
     device.power_kw = body.power_kw
     if body.status:
         device.status = body.status
-    if body.temp_c is not None and device.type == "ac":
-        pass  # temp_c is ambient, not setpoint
 
-    # Insert telemetry row
+    # Insert telemetry row (historical record)
     t = Telemetry(
         device_id=body.device_id,
         ts=body.ts,
@@ -82,7 +92,36 @@ async def twin_update(body: TelemetryIn, db: Session = Depends(get_db)):
     db.add(t)
     db.commit()
 
-    # Broadcast via WebSocket
+    # Feed into the digital twin model — this is where the physics happens
+    try:
+        computed = twin_ingest(
+            device_id=body.device_id,
+            power_kw=body.power_kw,
+            temp_c=body.temp_c,
+            status=body.status or device.status,
+            ts=body.ts,
+        )
+    except RuntimeError:
+        computed = {}
+
+    # Get the twin's current computed state for the room
+    twin_computed = {}
+    try:
+        full_state = twin_state()
+        # Find this device's room
+        room_id = device.room_id
+        room_state = next(
+            (r for r in full_state.get("rooms", []) if r["room_id"] == room_id), None
+        )
+        twin_computed = {
+            "room_temp_c": room_state["current_temp_c"] if room_state else None,
+            "comfort_status": room_state["comfort_status"] if room_state else None,
+            "temp_trend": room_state["temp_trend_c_per_hour"] if room_state else None,
+        }
+    except Exception:
+        pass
+
+    # Broadcast enriched message via WebSocket
     msg = {
         "type": "telemetry_update",
         "device_id": device.id,
@@ -91,23 +130,26 @@ async def twin_update(body: TelemetryIn, db: Session = Depends(get_db)):
         "temp_c": body.temp_c,
         "status": body.status or device.status,
         "ts": body.ts.isoformat() if isinstance(body.ts, datetime) else str(body.ts),
+        # Twin-computed fields (not from sensors)
+        "twin_computed": {
+            **twin_computed,
+            **computed.get("computed", {}),
+        },
     }
     await manager.broadcast(msg)
-    return {"ok": True}
+    return {"ok": True, "twin_step": computed.get("computed", {}).get("power_kw")}
 
 
 # ─── 4) Forecast ─────────────────────────────────────────
 @router.get("/forecast", response_model=list[ForecastPoint])
 def forecast(horizon: int = Query(24, ge=1, le=48), db: Session = Depends(get_db)):
     from ml.forecasting import forecast_next_24h
-    # Gather recent telemetry for heuristic
     recent = (
         db.query(Telemetry)
         .order_by(Telemetry.ts.desc())
-        .limit(96 * 5)  # up to 5 days of 15-min data
+        .limit(96 * 5)
         .all()
     )
-    # Get active scenario context
     scenario = db.query(Scenario).filter(Scenario.name == "normal").first()
     context = json.loads(scenario.payload_json) if scenario else {}
 
@@ -124,7 +166,6 @@ def forecast(horizon: int = Query(24, ge=1, le=48), db: Session = Depends(get_db
 @router.post("/optimize", response_model=OptimizeOut)
 def optimize(body: OptimizeIn = OptimizeIn(), db: Session = Depends(get_db)):
     from ml.optimizer import generate_recommendations
-    # Load saved preferences as defaults
     pref = db.query(UserPreference).first()
     constraints = {
         "comfort_min_c": body.comfort_min_c or (pref.comfort_min_c if pref else 22.0),
@@ -134,13 +175,11 @@ def optimize(body: OptimizeIn = OptimizeIn(), db: Session = Depends(get_db)):
         "max_shift_minutes": body.max_shift_minutes or (pref.max_shift_minutes if pref else 120),
         "mode": body.mode or (pref.mode if pref else "balanced"),
     }
-    # Get forecast for optimization
     scenario = db.query(Scenario).filter(Scenario.name == "normal").first()
     context = json.loads(scenario.payload_json) if scenario else {}
 
     actions = generate_recommendations(constraints, context, settings)
 
-    # Save to DB
     for a in actions:
         rec = Recommendation(
             ts=datetime.utcnow(),
@@ -196,7 +235,6 @@ def simulate(scenario: str = Query("normal"), db: Session = Depends(get_db)):
 @router.get("/kpis", response_model=KpiOut)
 def kpis(db: Session = Depends(get_db)):
     from ml.kpi import compute_kpis
-    # Use normal scenario for KPI calc
     sc = db.query(Scenario).filter(Scenario.name == "normal").first()
     if not sc:
         return KpiOut(kwh_saved=0, aed_saved=0, co2_avoided=0, comfort_compliance=1.0)
@@ -237,13 +275,12 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Keep connection alive; ignore client messages
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 
-# ─── Preferences endpoints ───────────────────────────────
+# ─── Preferences ─────────────────────────────────────────
 @router.get("/preferences", response_model=UserPreferenceOut)
 def get_preferences(db: Session = Depends(get_db)):
     pref = db.query(UserPreference).first()
@@ -266,6 +303,18 @@ def update_preferences(body: UserPreferenceIn, db: Session = Depends(get_db)):
     pref.mode = body.mode
     db.commit()
     db.refresh(pref)
+
+    # Also update the live twin model
+    try:
+        twin_update_preferences(
+            comfort_min_c=body.comfort_min_c,
+            comfort_max_c=body.comfort_max_c,
+            ev_target_soc=body.ev_target_soc,
+            ev_departure_time=body.ev_departure_time,
+        )
+    except RuntimeError:
+        pass
+
     return pref
 
 

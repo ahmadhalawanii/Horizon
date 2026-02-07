@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import KpiCard from "../components/KpiCard";
 import ForecastChart from "../components/ForecastChart";
+import clsx from "clsx";
 
 export default function Overview() {
   const queryClient = useQueryClient();
@@ -15,6 +16,12 @@ export default function Overview() {
   const { data: forecast, isLoading: forecastLoading } = useQuery({
     queryKey: ["forecast"],
     queryFn: () => api.getForecast(24),
+  });
+
+  const { data: twinState } = useQuery({
+    queryKey: ["twin-state"],
+    queryFn: api.getTwinState,
+    refetchInterval: 3000,
   });
 
   const handleDispatch = async () => {
@@ -33,12 +40,11 @@ export default function Overview() {
         `AI Plan dispatched! ${result.actions.length} actions, est. ${totalSaved.toFixed(1)} kWh saved.`,
         { id: toastId, duration: 4000 }
       );
-    } catch (err) {
+    } catch {
       toast.error("Optimization failed. Check backend.", { id: toastId });
     }
   };
 
-  // Carbon window: simple classification of forecast hours
   const carbonBars =
     forecast?.map((p) => {
       const kw = p.predicted_kw;
@@ -54,13 +60,49 @@ export default function Overview() {
         <div>
           <h2 className="text-2xl font-bold">Overview</h2>
           <p className="text-sm text-horizon-muted mt-1">
-            Real-time energy intelligence for Villa A
+            Real-time energy intelligence for {twinState?.home_name ?? "Villa A"}
           </p>
         </div>
         <button onClick={handleDispatch} className="btn-primary text-sm">
           Dispatch AI Plan
         </button>
       </div>
+
+      {/* Twin live status strip */}
+      {twinState && (
+        <div className="card bg-gradient-to-r from-horizon-card to-horizon-surface flex items-center gap-6 py-3 px-5">
+          <div>
+            <p className="text-[10px] text-horizon-muted uppercase tracking-wider">Digital Twin</p>
+            <p className="text-lg font-mono font-bold text-horizon-accent">
+              {twinState.energy.current_power_kw.toFixed(2)} kW
+            </p>
+          </div>
+          <div className="h-8 w-px bg-horizon-border" />
+          {twinState.rooms
+            .filter((r) => r.cooling_output_kw > 0 || r.room_name !== "Garage")
+            .slice(0, 3)
+            .map((room) => (
+              <div key={room.room_id} className="text-center">
+                <p className="text-xs text-horizon-muted">{room.room_name}</p>
+                <p className={clsx(
+                  "text-sm font-mono font-semibold",
+                  room.comfort_status === "comfortable" ? "text-horizon-green" :
+                  room.comfort_status === "warm" ? "text-horizon-amber" : "text-cyan-400"
+                )}>
+                  {room.current_temp_c.toFixed(1)}°C
+                </p>
+              </div>
+          ))}
+          <div className="ml-auto text-right">
+            <p className="text-xs text-horizon-muted">
+              Outside: <b className="text-horizon-amber">{twinState.environment.outside_temp_c}°C</b>
+            </p>
+            <p className="text-xs text-horizon-muted">
+              Steps: <b className="text-horizon-accent font-mono">{twinState.twin_step_count}</b>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

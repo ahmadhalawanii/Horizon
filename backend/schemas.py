@@ -4,7 +4,91 @@ from typing import Optional, Any
 from datetime import datetime
 
 
-# ─── Twin ─────────────────────────────────────────────────
+# ─── Twin (computed by digital twin model) ────────────────
+class RoomThermalOut(BaseModel):
+    room_id: int
+    room_name: str
+    current_temp_c: float
+    temp_trend_c_per_hour: float
+    humidity_pct: float
+    comfort_status: str  # comfortable / warm / cool / out_of_band
+    heat_gain_kw: float
+    cooling_output_kw: float
+    minutes_to_setpoint: float
+
+
+class DeviceComputedOut(BaseModel):
+    device_id: int
+    room_id: int
+    type: str
+    name: str
+    status: str
+    power_kw: float
+    # AC-specific computed fields
+    setpoint_c: Optional[float] = None
+    room_temp_c: Optional[float] = None
+    cop: Optional[float] = None
+    compressor_load_pct: Optional[float] = None
+    cooling_output_kw: Optional[float] = None
+    runtime_minutes: Optional[float] = None
+    cycles_today: Optional[int] = None
+    # EV-specific computed fields
+    soc_pct: Optional[float] = None
+    energy_delivered_kwh: Optional[float] = None
+    time_to_target_minutes: Optional[float] = None
+    max_charge_rate_kw: Optional[float] = None
+    battery_capacity_kwh: Optional[float] = None
+    estimated_full_time: Optional[str] = None
+    estimated_target_time: Optional[str] = None
+    # Water heater computed fields
+    water_temp_c: Optional[float] = None
+    target_temp_c: Optional[float] = None
+    element_on: Optional[bool] = None
+    heat_loss_rate_kw: Optional[float] = None
+    energy_stored_kwh: Optional[float] = None
+    # Washer computed fields
+    cycle_phase: Optional[str] = None
+    progress_pct: Optional[float] = None
+    time_remaining_min: Optional[float] = None
+    energy_this_cycle_kwh: Optional[float] = None
+
+
+class EnvironmentOut(BaseModel):
+    outside_temp_c: float
+    solar_irradiance_w_m2: float
+    humidity_pct: float
+    grid_carbon_intensity: float
+
+
+class EnergyOut(BaseModel):
+    current_power_kw: float
+    total_energy_kwh: float
+    cost_aed: float
+    co2_kg: float
+    peak_power_kw: float
+
+
+class ComfortSummaryOut(BaseModel):
+    compliance_pct: float
+    comfort_band: str
+    rooms_comfortable: int
+    rooms_total: int
+
+
+class TwinStateOut(BaseModel):
+    """Full computed digital twin state — NOT raw DB rows."""
+    timestamp: str
+    home_name: str
+    environment: EnvironmentOut
+    rooms: list[RoomThermalOut]
+    devices: list[DeviceComputedOut]
+    energy: EnergyOut
+    comfort_summary: ComfortSummaryOut
+    twin_step_count: int
+    twin_uptime_seconds: float
+
+
+# ─── Legacy simple state (for backwards compat) ──────────
 class DeviceOut(BaseModel):
     id: int
     room_id: int
@@ -34,12 +118,6 @@ class HomeOut(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class TwinStateOut(BaseModel):
-    home: HomeOut
-    rooms: list[RoomOut]
-    devices_by_room: dict[str, list[DeviceOut]]
 
 
 # ─── Telemetry ────────────────────────────────────────────
