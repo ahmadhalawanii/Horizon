@@ -1,40 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+.pytest_cache/
+*.db
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment
+.env
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Environment / secrets
-.env
-.env.*
-!.env.example
-
-# Frontend (React/Vite)
-node_modules/
-dist/
-build/
-.vite/
-coverage/
-*.tsbuildinfo
-
-# Backend (Python)
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Local databases / generated ML artifacts
-*.sqlite
-*.sqlite3
-*.db
-models/
-artifacts/
-mlruns/
-
-# IDE/editor
-.vscode/
-.idea/
-
-# Logs
+# Build
 *.log

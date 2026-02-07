@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-horizon-bg text-horizon-text;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-horizon-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-horizon-border rounded-full;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-horizon-card border border-horizon-border rounded-xl p-5;
+  }
+  .btn-primary {
+    @apply bg-horizon-accent hover:bg-horizon-accent-dim text-white font-medium
+           px-5 py-2.5 rounded-lg transition-colors duration-200;
+  }
+  .btn-secondary {
+    @apply bg-horizon-surface hover:bg-horizon-card text-horizon-text
+           border border-horizon-border font-medium px-5 py-2.5 rounded-lg
+           transition-colors duration-200;
+  }
+}
