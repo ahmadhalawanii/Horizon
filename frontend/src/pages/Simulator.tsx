@@ -6,35 +6,19 @@ import BaselineVsOptimizedChart from "../components/BaselineVsOptimizedChart";
 import KpiCard from "../components/KpiCard";
 import clsx from "clsx";
 
-type ScenarioType = "normal" | "peak" | "heatwave";
-
-const SCENARIOS: { id: ScenarioType; label: string; desc: string }[] = [
-  { id: "normal", label: "Normal", desc: "Typical UAE summer day" },
-  { id: "peak", label: "Peak", desc: "Hot afternoon, high occupancy" },
-  { id: "heatwave", label: "Heatwave", desc: "Extreme cooling demand" },
-];
-
 export default function Simulator() {
   const queryClient = useQueryClient();
-  const [scenario, setScenario] = useState<ScenarioType>("normal");
-  const [animate, setAnimate] = useState(false);
-  const [judgeRunning, setJudgeRunning] = useState(false);
+  const [scenario, setScenario] = useState<"normal" | "peak" | "heatwave">("normal");
+  const [running, setRunning] = useState(false);
 
   const { data: simData, isLoading: simLoading } = useQuery({
     queryKey: ["simulate", scenario],
     queryFn: () => api.getSimulate(scenario),
   });
 
-  const { data: kpis } = useQuery({
-    queryKey: ["kpis"],
-    queryFn: api.getKpis,
-  });
-
-  // Compute deltas from simulate data
-  const totalBaseline =
-    simData?.baseline_kw.reduce((s, v) => s + v, 0) ?? 0;
-  const totalOptimized =
-    simData?.optimized_kw.reduce((s, v) => s + v, 0) ?? 0;
+  // Compute deltas
+  const totalBaseline = simData?.baseline_kw.reduce((s, v) => s + v, 0) ?? 0;
+  const totalOptimized = simData?.optimized_kw.reduce((s, v) => s + v, 0) ?? 0;
   const totalSaved = Math.max(0, totalBaseline - totalOptimized);
   const peakBaseline = Math.max(...(simData?.baseline_kw ?? [0]));
   const peakOptimized = Math.max(...(simData?.optimized_kw ?? [0]));
@@ -43,97 +27,57 @@ export default function Simulator() {
       ? (((peakBaseline - peakOptimized) / peakBaseline) * 100).toFixed(0)
       : "0";
 
-  const handleJudgeMode = async () => {
-    setJudgeRunning(true);
-    const toastId = toast.loading("Judge Mode: Running optimization flow...");
-
+  const handleRunAutopilotSim = async () => {
+    setRunning(true);
+    const toastId = toast.loading("Running AI Autopilot simulation...");
     try {
-      // Step 1: Select peak scenario
+      // Enable autopilot
+      await api.toggleAutopilot(1, true);
+      await queryClient.invalidateQueries({ queryKey: ["preferences"] });
+
+      // Spike + refresh
+      await api.simulateSpike(1, "peak");
       setScenario("peak");
-      await new Promise((r) => setTimeout(r, 1000));
-      toast.loading("Selecting peak scenario...", { id: toastId });
-
-      // Step 2: Run optimization
-      await new Promise((r) => setTimeout(r, 1500));
-      toast.loading("Running AI optimization (balanced)...", { id: toastId });
-      await api.postOptimize({ mode: "balanced" });
-
-      // Step 3: Fetch simulate & KPIs
-      await new Promise((r) => setTimeout(r, 1000));
-      toast.loading("Simulating baseline vs optimized...", { id: toastId });
       await queryClient.invalidateQueries({ queryKey: ["simulate", "peak"] });
       await queryClient.invalidateQueries({ queryKey: ["kpis"] });
 
-      // Step 4: Animate
-      await new Promise((r) => setTimeout(r, 500));
-      setAnimate(true);
-
-      toast.success("Judge Mode complete! Review the results below.", {
-        id: toastId,
-        duration: 5000,
-      });
+      toast.success(
+        "High usage simulated. AI Autopilot reshapes the schedule while staying in your comfort range.",
+        { id: toastId, duration: 5000 }
+      );
     } catch {
-      toast.error("Judge Mode failed", { id: toastId });
+      toast.error("Simulation failed", { id: toastId });
     } finally {
-      setJudgeRunning(false);
+      setRunning(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Impact Simulator</h2>
+          <h2 className="text-2xl font-bold">Simulator</h2>
           <p className="text-sm text-horizon-muted mt-1">
-            Compare baseline vs AI-optimized energy profiles
+            Baseline vs AI-optimized energy profiles
           </p>
         </div>
         <button
-          onClick={handleJudgeMode}
-          disabled={judgeRunning}
-          className={clsx(
-            "btn-primary text-sm",
-            judgeRunning && "opacity-50 cursor-not-allowed"
-          )}
+          onClick={handleRunAutopilotSim}
+          disabled={running}
+          className={clsx("btn-primary text-sm", running && "opacity-50")}
         >
-          {judgeRunning ? "Running..." : "Judge Mode"}
+          {running ? "Running..." : "Run AI Autopilot Simulation"}
         </button>
       </div>
 
-      {/* Scenario Selector */}
-      <div className="flex gap-3">
-        {SCENARIOS.map((sc) => (
-          <button
-            key={sc.id}
-            onClick={() => {
-              setScenario(sc.id);
-              setAnimate(false);
-            }}
-            className={clsx(
-              "card flex-1 text-center transition-all cursor-pointer",
-              scenario === sc.id
-                ? "border-horizon-accent bg-horizon-accent/5"
-                : "hover:border-horizon-accent/30"
-            )}
-          >
-            <p className="text-sm font-semibold">{sc.label}</p>
-            <p className="text-xs text-horizon-muted mt-1">{sc.desc}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Main Chart */}
+      {/* Main chart */}
       {simLoading ? (
         <div className="card h-72 flex items-center justify-center text-horizon-muted">
           Loading simulation...
         </div>
       ) : simData ? (
-        <BaselineVsOptimizedChart
-          data={simData}
-          animate={animate}
-          title={`Baseline vs Optimized — ${scenario.charAt(0).toUpperCase() + scenario.slice(1)} Scenario`}
-        />
+        <BaselineVsOptimizedChart data={simData} />
       ) : null}
 
       {/* Delta cards */}
@@ -144,32 +88,34 @@ export default function Simulator() {
           unit="kWh"
           icon="⚡"
           color="green"
-          trend="down"
         />
         <KpiCard
           label="Cost Saved"
-          value={(totalSaved * 0.38).toFixed(2)}
+          value={(totalSaved * 0.38).toFixed(1)}
           unit="AED"
           icon="💰"
           color="amber"
-          trend="down"
         />
         <KpiCard
           label="CO₂ Avoided"
           value={(totalSaved * 0.45).toFixed(1)}
-          unit="kg CO₂"
+          unit="kg"
           icon="🌱"
-          color="cyan"
-          trend="down"
+          color="green"
         />
         <KpiCard
           label="Peak Reduction"
           value={`${peakReduction}%`}
-          unit="peak kW shaved"
+          unit="shaved"
           icon="📉"
-          color="green"
+          color="cyan"
         />
       </div>
+
+      {/* Explanation */}
+      <p className="text-sm text-horizon-muted text-center">
+        High usage simulated. AI Autopilot reshapes the schedule while staying in your comfort range.
+      </p>
     </div>
   );
 }

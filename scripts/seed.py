@@ -277,7 +277,7 @@ def seed():
         db.add(pref)
 
         db.commit()
-        print("✓ Database seeded successfully!")
+        print("[OK] Database seeded successfully!")
         print("  - 1 home: Villa A")
         print("  - 4 rooms: Living Room, Bedroom, Kitchen, Garage")
         print("  - 5 devices: 2x AC, Water Heater, Washer Dryer, EV Charger")

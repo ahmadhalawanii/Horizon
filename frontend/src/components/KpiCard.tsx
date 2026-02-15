@@ -10,10 +10,10 @@ interface KpiCardProps {
 }
 
 const colorMap = {
-  cyan: "text-horizon-accent border-horizon-accent/20 bg-horizon-accent/5",
-  green: "text-horizon-green border-horizon-green/20 bg-horizon-green/5",
-  amber: "text-horizon-amber border-horizon-amber/20 bg-horizon-amber/5",
-  red: "text-horizon-red border-horizon-red/20 bg-horizon-red/5",
+  cyan: "border-blue-200 bg-blue-50",
+  green: "border-green-200 bg-green-50",
+  amber: "border-amber-200 bg-amber-50",
+  red: "border-red-200 bg-red-50",
 };
 
 export default function KpiCard({
@@ -22,33 +22,22 @@ export default function KpiCard({
   unit,
   icon,
   color = "cyan",
-  trend,
 }: KpiCardProps) {
   return (
     <div
       className={clsx(
-        "card flex flex-col gap-2 transition-all duration-500",
+        "rounded-xl border p-4 transition-all",
         colorMap[color]
       )}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-2xl">{icon}</span>
-        {trend && (
-          <span
-            className={clsx(
-              "text-xs font-mono",
-              trend === "down" ? "text-horizon-green" : "text-horizon-amber"
-            )}
-          >
-            {trend === "down" ? "▼" : trend === "up" ? "▲" : "—"}
-          </span>
-        )}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xl">{icon}</span>
+        <span className="text-xs text-horizon-muted font-medium">{label}</span>
       </div>
-      <div>
-        <p className="text-2xl font-bold font-mono tracking-tight">{value}</p>
-        <p className="text-xs opacity-60">{unit}</p>
-      </div>
-      <p className="text-xs font-medium opacity-80">{label}</p>
+      <p className="text-2xl font-bold font-mono tracking-tight text-horizon-text">
+        {value}
+      </p>
+      <p className="text-xs text-horizon-muted mt-0.5">{unit}</p>
     </div>
   );
 }

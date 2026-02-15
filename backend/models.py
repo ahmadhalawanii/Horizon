@@ -1,6 +1,6 @@
 """SQLAlchemy ORM models for the Horizon digital twin."""
 from sqlalchemy import (
-    Column, Integer, String, Float, Text, DateTime, ForeignKey, func
+    Column, Integer, String, Float, Text, DateTime, Boolean, ForeignKey, func
 )
 from sqlalchemy.orm import relationship
 from backend.database import Base
@@ -63,6 +63,7 @@ class Recommendation(Base):
     estimated_co2_saved = Column(Float, default=0.0)
     confidence = Column(Float, default=0.5)
     action_json = Column(Text, nullable=True)
+    source = Column(String, default="manual")  # "manual" | "autopilot"
 
 
 class Scenario(Base):
@@ -83,4 +84,5 @@ class UserPreference(Base):
     ev_target_soc = Column(Float, default=80.0)
     max_shift_minutes = Column(Integer, default=120)
     mode = Column(String, default="balanced")       # comfort | balanced | saver
+    autopilot_enabled = Column(Boolean, default=False)
     home = relationship("Home", back_populates="preferences")

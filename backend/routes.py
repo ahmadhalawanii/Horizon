@@ -20,10 +20,13 @@ from backend.schemas import (
     UserPreferenceIn, UserPreferenceOut,
     LayoutImportIn, LayoutImportOut,
     LayoutStateOut, RoomGeometryOut,
+    AutopilotToggleIn, AutopilotToggleOut,
+    SpikeIn, SpikeOut,
 )
 from backend.config import get_settings
 from backend.ws_manager import manager
 from backend.twin_engine import get_twin, twin_ingest, twin_state, twin_update_preferences
+from backend.autopilot_state import can_run_autopilot, run_autopilot_for_home, create_spike_scenario
 
 router = APIRouter()
 settings = get_settings()
@@ -139,6 +142,28 @@ async def twin_update(body: TelemetryIn, db: Session = Depends(get_db)):
         },
     }
     await manager.broadcast(msg)
+
+    # ─── Autopilot check: if enabled, run optimizer automatically ───
+    try:
+        room = db.query(Room).filter(Room.id == device.room_id).first()
+        if room:
+            pref = db.query(UserPreference).filter(
+                UserPreference.home_id == room.home_id
+            ).first()
+            if pref and pref.autopilot_enabled:
+                can_run, reason = can_run_autopilot(room.home_id)
+                if can_run:
+                    actions = run_autopilot_for_home(room.home_id, db)
+                    if actions:
+                        await manager.broadcast({
+                            "type": "autopilot_action",
+                            "home_id": room.home_id,
+                            "actions_count": len(actions),
+                            "message": f"Autopilot generated {len(actions)} actions",
+                        })
+    except Exception as e:
+        logger.warning(f"Autopilot check failed: {e}")
+
     return {"ok": True, "twin_step": computed.get("computed", {}).get("power_kw")}
 
 
@@ -192,6 +217,7 @@ def optimize(body: OptimizeIn = OptimizeIn(), db: Session = Depends(get_db)):
             estimated_co2_saved=a["estimated_co2_saved"],
             confidence=a["confidence"],
             action_json=json.dumps(a.get("action", {})),
+            source="manual",
         )
         db.add(rec)
     db.commit()
@@ -253,8 +279,11 @@ def kpis(db: Session = Depends(get_db)):
 
 # ─── 8) Actions log ──────────────────────────────────────
 @router.get("/actions", response_model=list[RecommendationOut])
-def get_actions(db: Session = Depends(get_db)):
-    recs = db.query(Recommendation).order_by(Recommendation.ts.desc()).limit(50).all()
+def get_actions(source: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    q = db.query(Recommendation)
+    if source:
+        q = q.filter(Recommendation.source == source)
+    recs = q.order_by(Recommendation.ts.desc()).limit(50).all()
     return [
         RecommendationOut(
             id=r.id,
@@ -266,6 +295,7 @@ def get_actions(db: Session = Depends(get_db)):
             estimated_co2_saved=r.estimated_co2_saved,
             confidence=r.confidence,
             action_json=json.loads(r.action_json) if r.action_json else None,
+            source=r.source or "manual",
         )
         for r in recs
     ]
@@ -338,6 +368,87 @@ def get_telemetry(device_id: int, hours: int = Query(2, ge=1, le=48), db: Sessio
         }
         for r in rows
     ]
+
+
+# ─── Autopilot Toggle ────────────────────────────────────
+@router.post("/autopilot/toggle", response_model=AutopilotToggleOut)
+def toggle_autopilot(body: AutopilotToggleIn, db: Session = Depends(get_db)):
+    """Toggle AI Autopilot for a home."""
+    pref = db.query(UserPreference).filter(
+        UserPreference.home_id == body.home_id
+    ).first()
+    if not pref:
+        raise HTTPException(404, f"No preferences for home {body.home_id}")
+
+    pref.autopilot_enabled = body.enabled
+    db.commit()
+    db.refresh(pref)
+
+    status = "enabled" if body.enabled else "disabled"
+    logger.info(f"Autopilot {status} for home {body.home_id}")
+
+    return AutopilotToggleOut(
+        home_id=body.home_id,
+        autopilot_enabled=pref.autopilot_enabled,
+        message=f"AI Autopilot {status}",
+    )
+
+
+# ─── Simulate Spike (demo) ──────────────────────────────
+@router.post("/simulate/spike", response_model=SpikeOut)
+def simulate_spike(body: SpikeIn = SpikeIn(), db: Session = Depends(get_db)):
+    """
+    Simulate a high-usage spike for demo purposes.
+    Creates a dramatic before/after by boosting baseline loads,
+    then showing what the optimizer would produce.
+    """
+    from ml.optimizer import simulate_scenario
+    from ml.kpi import compute_kpis
+
+    # Get the scenario payload
+    sc = db.query(Scenario).filter(Scenario.name == body.scenario).first()
+    if not sc:
+        # Fall back to normal
+        sc = db.query(Scenario).filter(Scenario.name == "normal").first()
+    if not sc:
+        raise HTTPException(404, "No scenarios found. Run seed first.")
+
+    payload = json.loads(sc.payload_json)
+
+    # Apply spike multiplier to the scenario baselines
+    spike_info = create_spike_scenario(body.scenario)
+    mult = spike_info["multiplier"]
+
+    # Boost the baseline loads in the scenario
+    for key in ["ac_kw", "ev_kw", "wh_kw", "washer_kw"]:
+        if key in payload:
+            payload[key] = [round(v * mult, 2) for v in payload[key]]
+
+    pref = db.query(UserPreference).filter(
+        UserPreference.home_id == body.home_id
+    ).first()
+    constraints = {
+        "comfort_min_c": pref.comfort_min_c if pref else 22.0,
+        "comfort_max_c": pref.comfort_max_c if pref else 26.0,
+        "ev_departure_time": pref.ev_departure_time if pref else "07:30",
+        "ev_target_soc": pref.ev_target_soc if pref else 80.0,
+        "max_shift_minutes": pref.max_shift_minutes if pref else 120,
+        "mode": pref.mode if pref else "balanced",
+    }
+
+    settings = get_settings()
+    sim_result = simulate_scenario(payload, constraints, settings)
+    kpi_result = compute_kpis(payload, constraints, settings)
+
+    return SpikeOut(
+        home_id=body.home_id,
+        scenario=body.scenario,
+        baseline_kw=sim_result["baseline_kw"],
+        optimized_kw=sim_result["optimized_kw"],
+        ts=sim_result["ts"],
+        kpis=KpiOut(**kpi_result),
+        message=f"High usage simulated ({body.scenario}). AI Autopilot can stabilize this.",
+    )
 
 
 # ─── Layout Import (from iOS LiDAR scanner) ──────────────

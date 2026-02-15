@@ -20,17 +20,17 @@
 
 @layer components {
   .card {
-    @apply bg-horizon-card border border-horizon-border rounded-xl p-4 md:p-5;
+    @apply bg-horizon-card border border-horizon-border rounded-xl p-4 md:p-5 shadow-sm;
   }
   .btn-primary {
     @apply bg-horizon-accent hover:bg-horizon-accent-dim text-white font-medium
            px-4 md:px-5 py-2.5 rounded-lg transition-colors duration-200
-           min-h-[44px] active:scale-95;
+           min-h-[44px] active:scale-[0.98];
   }
   .btn-secondary {
-    @apply bg-horizon-surface hover:bg-horizon-card text-horizon-text
+    @apply bg-horizon-surface hover:bg-gray-50 text-horizon-text
            border border-horizon-border font-medium px-4 md:px-5 py-2.5 rounded-lg
-           transition-colors duration-200 min-h-[44px] active:scale-95;
+           transition-colors duration-200 min-h-[44px] active:scale-[0.98];
   }
   .safe-area-pb {
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom));

@@ -196,6 +196,7 @@ class RecommendationOut(BaseModel):
     estimated_co2_saved: float
     confidence: float
     action_json: Optional[Any] = None
+    source: str = "manual"
 
     class Config:
         from_attributes = True
@@ -221,6 +222,7 @@ class UserPreferenceOut(BaseModel):
     ev_target_soc: float
     max_shift_minutes: int
     mode: str
+    autopilot_enabled: bool = False
 
     class Config:
         from_attributes = True
@@ -266,3 +268,31 @@ class LayoutStateOut(BaseModel):
     home_id: int
     home_name: str
     rooms: list[RoomGeometryOut]
+
+
+# ─── Autopilot ────────────────────────────────────────────
+class AutopilotToggleIn(BaseModel):
+    home_id: int = 1
+    enabled: bool
+
+
+class AutopilotToggleOut(BaseModel):
+    home_id: int
+    autopilot_enabled: bool
+    message: str
+
+
+# ─── Simulate Spike (demo) ───────────────────────────────
+class SpikeIn(BaseModel):
+    home_id: int = 1
+    scenario: str = "peak"  # "normal" | "peak" | "heatwave"
+
+
+class SpikeOut(BaseModel):
+    home_id: int
+    scenario: str
+    baseline_kw: list[float]
+    optimized_kw: list[float]
+    ts: list[str]
+    kpis: KpiOut
+    message: str

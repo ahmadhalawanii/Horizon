@@ -27,7 +27,8 @@ export const api = {
   getSimulate: (scenario = "normal") =>
     request<SimulateResult>(`/simulate?scenario=${scenario}`),
   getKpis: () => request<KpiData>("/kpis"),
-  getActions: () => request<ActionItem[]>("/actions"),
+  getActions: (source?: string) =>
+    request<ActionItem[]>(`/actions${source ? `?source=${source}` : ""}`),
   getPreferences: () => request<UserPreferences>("/preferences"),
   putPreferences: (prefs: UserPreferences) =>
     request<UserPreferences>("/preferences", {
@@ -39,6 +40,18 @@ export const api = {
     request<LayoutImportResult>("/layout/import", {
       method: "POST",
       body: JSON.stringify(layout),
+    }),
+  // ─── Autopilot ─────────────────────────────────────────
+  toggleAutopilot: (homeId: number, enabled: boolean) =>
+    request<AutopilotToggleResult>("/autopilot/toggle", {
+      method: "POST",
+      body: JSON.stringify({ home_id: homeId, enabled }),
+    }),
+  // ─── Simulate Spike (demo) ─────────────────────────────
+  simulateSpike: (homeId: number, scenario: string = "peak") =>
+    request<SpikeResult>("/simulate/spike", {
+      method: "POST",
+      body: JSON.stringify({ home_id: homeId, scenario }),
     }),
 };
 
@@ -162,6 +175,7 @@ export interface ActionItem {
   estimated_co2_saved: number;
   confidence: number;
   action_json?: Record<string, unknown>;
+  source?: "manual" | "autopilot";
 }
 
 export interface SimulateResult {
@@ -187,6 +201,23 @@ export interface UserPreferences {
   ev_target_soc: number;
   max_shift_minutes: number;
   mode: "comfort" | "balanced" | "saver";
+  autopilot_enabled?: boolean;
+}
+
+export interface AutopilotToggleResult {
+  home_id: number;
+  autopilot_enabled: boolean;
+  message: string;
+}
+
+export interface SpikeResult {
+  home_id: number;
+  scenario: string;
+  baseline_kw: number[];
+  optimized_kw: number[];
+  ts: string[];
+  kpis: KpiData;
+  message: string;
 }
 
 // ─── Layout (3D view) ────────────────────────────────────

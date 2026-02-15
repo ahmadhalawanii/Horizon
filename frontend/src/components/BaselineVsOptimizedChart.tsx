@@ -13,13 +13,11 @@ import type { SimulateResult } from "../lib/api";
 interface Props {
   data: SimulateResult;
   title?: string;
-  animate?: boolean;
 }
 
 export default function BaselineVsOptimizedChart({
   data,
   title = "Baseline vs Optimized Load",
-  animate = true,
 }: Props) {
   const chartData = data.ts.map((ts, i) => ({
     time: new Date(ts).toLocaleTimeString("en-US", {
@@ -29,7 +27,6 @@ export default function BaselineVsOptimizedChart({
     }),
     baseline: data.baseline_kw[i],
     optimized: data.optimized_kw[i],
-    saved: Math.max(0, data.deltas_kw[i]),
   }));
 
   return (
@@ -40,63 +37,59 @@ export default function BaselineVsOptimizedChart({
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="baselineGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                <stop offset="5%" stopColor="#dc2626" stopOpacity={0.1} />
+                <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="optimizedGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                <stop offset="5%" stopColor="#16a34a" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="time"
-              stroke="#64748b"
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
+              stroke="#94a3b8"
+              tick={{ fill: "#64748b", fontSize: 11 }}
               interval={2}
             />
             <YAxis
-              stroke="#64748b"
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
+              stroke="#94a3b8"
+              tick={{ fill: "#64748b", fontSize: 11 }}
               label={{
                 value: "kW",
                 angle: -90,
                 position: "insideLeft",
-                fill: "#94a3b8",
+                fill: "#64748b",
                 fontSize: 11,
               }}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1a2332",
-                border: "1px solid #1e293b",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e2e8f0",
                 borderRadius: 8,
-                color: "#e2e8f0",
+                color: "#1e293b",
                 fontSize: 12,
               }}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 12, color: "#94a3b8" }}
-            />
+            <Legend wrapperStyle={{ fontSize: 12, color: "#64748b" }} />
             <Area
               type="monotone"
               dataKey="baseline"
               name="Baseline"
-              stroke="#ef4444"
+              stroke="#dc2626"
               strokeWidth={2}
               fill="url(#baselineGrad)"
-              isAnimationActive={animate}
-              animationDuration={1500}
+              animationDuration={1000}
             />
             <Area
               type="monotone"
               dataKey="optimized"
               name="Optimized"
-              stroke="#22c55e"
+              stroke="#16a34a"
               strokeWidth={2}
               fill="url(#optimizedGrad)"
-              isAnimationActive={animate}
-              animationDuration={1500}
+              animationDuration={1000}
             />
           </AreaChart>
         </ResponsiveContainer>

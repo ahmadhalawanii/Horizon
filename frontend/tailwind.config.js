@@ -5,17 +5,17 @@ export default {
     extend: {
       colors: {
         horizon: {
-          bg: "#0a0e17",
-          surface: "#111827",
-          card: "#1a2332",
-          border: "#1e293b",
-          accent: "#06b6d4",
-          "accent-dim": "#0891b2",
-          green: "#22c55e",
-          amber: "#f59e0b",
-          red: "#ef4444",
-          text: "#e2e8f0",
-          muted: "#94a3b8",
+          bg: "#f8f9fb",
+          surface: "#ffffff",
+          card: "#ffffff",
+          border: "#e2e8f0",
+          accent: "#2563eb",
+          "accent-dim": "#1d4ed8",
+          green: "#16a34a",
+          amber: "#d97706",
+          red: "#dc2626",
+          text: "#1e293b",
+          muted: "#64748b",
         },
       },
       fontFamily: {

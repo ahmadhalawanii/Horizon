@@ -1,37 +1,39 @@
 # Horizon — AI-Powered Home Energy Digital Twin
 
-> Comfort-first energy optimization for UAE smart villas. Built for hackathon demo.
-> Now with **iPhone LiDAR scanning** and **3D digital twin visualization**.
+> Comfort-first energy optimization for UAE smart villas.
+> Now with **AI Autopilot**, **Expo mobile app**, **LiDAR scanning**, and a **calm, minimal UI**.
 
 ```
-  ┌─────────────┐    ┌──────────────────────────────────────────┐
-  │  iOS App     │    │              HORIZON STACK                │
-  │  LiDAR Scan  │───►│  ┌──────────┬──────────┬──────────────┐  │
-  │  RoomPlan    │    │  │ Frontend │ Backend  │  ML Engine   │  │
-  └─────────────┘    │  │ React+TS │ FastAPI  │  Digital Twin │  │
-                     │  │ Three.js │ SQLite   │  Forecasting │  │
-                     │  │ Tailwind │ WebSocket│  Optimizer   │  │
-                     │  └────┬─────┴────┬─────┴──────┬───────┘  │
-                     │       │          │            │           │
-                     │  ┌────▼──────────▼────────────▼────────┐  │
-                     │  │          SQLite Database              │  │
-                     │  │  homes · rooms (+ geometry) · devices │  │
-                     │  │  telemetry · scenarios · preferences  │  │
-                     │  └──────────────────────────────────────┘  │
-                     └──────────────────────────────────────────┘
+  ┌─────────────┐    ┌─────────────┐    ┌──────────────────────────────────────────┐
+  │  iOS App     │    │  Expo App   │    │              HORIZON STACK                │
+  │  LiDAR Scan  │    │  iOS + Droid│    │  ┌──────────┬──────────┬──────────────┐  │
+  │  RoomPlan    │───►│  Autopilot  │───►│  │ Frontend │ Backend  │  ML Engine   │  │
+  └─────────────┘    │  Twin View  │    │  │ React+TS │ FastAPI  │  Digital Twin │  │
+                     └─────────────┘    │  │ Tailwind │ SQLite   │  Forecasting │  │
+                                        │  │ SVG Map  │ WebSocket│  Optimizer   │  │
+                                        │  └────┬─────┴────┬─────┴──────┬───────┘  │
+                                        │       │          │            │           │
+                                        │  ┌────▼──────────▼────────────▼────────┐  │
+                                        │  │          SQLite Database              │  │
+                                        │  │  homes · rooms · devices · telemetry  │  │
+                                        │  │  scenarios · preferences · actions    │  │
+                                        │  └──────────────────────────────────────┘  │
+                                        └──────────────────────────────────────────┘
 ```
 
 ## What Horizon Does
 
-1. **Digital Twin** — Shows live/simulated energy state (Home → Rooms → Devices)
-2. **Forecasting** — Predicts next 24h electricity consumption
-3. **Optimization** — Provides comfort-safe recommendations (pre-cool, shift loads, EV scheduling)
-4. **Impact Comparison** — Baseline vs optimized in kWh, AED, CO₂, and comfort compliance
+1. **Digital Twin** — Live/simulated energy state (Home → Rooms → Devices)
+2. **AI Autopilot** — Auto-optimizes usage when enabled, reacts to spikes
+3. **Forecasting** — Predicts next 24h electricity consumption
+4. **Optimization** — Comfort-safe recommendations (pre-cool, shift loads, EV scheduling)
+5. **Mobile App** — Expo-powered iOS/Android app with LiDAR scanning + Autopilot controls
 
 ### Core Philosophy
 - Comfort & convenience first (hard comfort bounds)
 - No lifestyle nagging — set preferences once, Horizon optimizes quietly
-- Simple, deterministic, easy to demo live
+- AI Autopilot: set it and forget it
+- Simple, calm, demo-friendly
 
 ---
 
@@ -41,17 +43,21 @@
 - Python 3.11+
 - Node.js 20+
 - pip, npm
+- (Optional) Expo CLI for mobile: `npm install -g expo-cli`
 
 ### 1. Clone & install
 
 ```bash
 git clone <repo-url> && cd Horizon
 
-# Install Python dependencies
+# Backend
 make install-backend
 
-# Install Node dependencies
+# Frontend
 make install-frontend
+
+# Mobile (optional)
+cd mobile/horizon-app && npm install && cd ../..
 ```
 
 ### 2. Create env files
@@ -78,16 +84,9 @@ make simulator
 
 # Terminal 3: Frontend (http://localhost:5173)
 make frontend
-```
 
-Or run all at once:
-```bash
-make all
-```
-
-### 5. Demo mode (recommended for judges)
-```bash
-make demo
+# Terminal 4 (optional): Mobile app
+cd mobile/horizon-app && npx expo start
 ```
 
 ---
@@ -96,31 +95,37 @@ make demo
 
 ```
 Horizon/
-├── backend/           FastAPI + SQLAlchemy + WebSocket
-│   ├── main.py        App entry point
-│   ├── models.py      ORM models (7 tables)
-│   ├── routes.py      All API endpoints
-│   ├── schemas.py     Pydantic validation
-│   ├── config.py      Environment config
-│   ├── database.py    SQLAlchemy setup
-│   ├── ws_manager.py  WebSocket broadcast
-│   └── tests/         pytest suite
-├── frontend/          React + Vite + TypeScript + Tailwind
+├── backend/               FastAPI + SQLAlchemy + WebSocket
+│   ├── main.py            App entry point
+│   ├── models.py          ORM models (7 tables + autopilot_enabled)
+│   ├── routes.py          All API endpoints (incl. /autopilot/toggle, /simulate/spike)
+│   ├── schemas.py         Pydantic validation
+│   ├── autopilot_state.py Autopilot controller (cooldown, limits, run logic)
+│   ├── config.py          Environment config
+│   ├── database.py        SQLAlchemy setup
+│   ├── ws_manager.py      WebSocket broadcast
+│   └── tests/             pytest suite
+├── frontend/              React + Vite + TypeScript + Tailwind
 │   └── src/
-│       ├── pages/     Overview, Console, Simulator, Actions
-│       ├── components/ KPI cards, charts, device cards
-│       ├── hooks/     WebSocket hook
-│       └── lib/       API client + types
-├── ml/                Forecasting + Optimization + KPIs
-│   ├── forecasting.py Heuristic time-of-day model
-│   ├── optimizer.py   Comfort-constrained optimizer
-│   └── kpi.py         KPI computation utilities
-├── scripts/           Seed data + telemetry simulator
-│   ├── seed.py        Database seeding (Villa A + scenarios)
-│   └── simulate_stream.py  Live telemetry streamer
-├── docs/              Architecture + demo script
-├── Makefile           Build targets
-└── README.md          This file
+│       ├── pages/         Overview, Twin, Simulator, Actions
+│       ├── components/    TopDownMap, AutopilotToggle, KPI cards, charts
+│       ├── hooks/         WebSocket hook
+│       └── lib/           API client + types
+├── mobile/
+│   ├── horizon-app/       Expo React Native app (iOS + Android)
+│   │   └── src/
+│   │       ├── screens/   HomeScreen, TwinScreen, ScanScreen, ActionsScreen
+│   │       ├── components/ TopDownMap (react-native-svg)
+│   │       ├── services/  API client, LiDAR scan stub
+│   │       └── data/      Sample layouts (studio, 1BR, villa)
+│   └── ios/               Native iOS LiDAR scanner (Swift/RoomPlan)
+├── shared/                Shared TypeScript types
+│   └── layoutTypes.ts     LayoutRoom, LayoutHome interfaces
+├── ml/                    Forecasting + Optimization + KPIs
+├── scripts/               Seed data + telemetry simulator
+├── docs/                  Architecture + demo script
+├── Makefile               Build targets
+└── README.md              This file
 ```
 
 ---
@@ -131,104 +136,43 @@ Horizon/
 |--------|------|-------------|
 | GET | `/health` | Health check |
 | GET | `/twin/state` | Current home → rooms → devices snapshot |
-| POST | `/twin/update` | Update device telemetry + broadcast via WS |
+| POST | `/twin/update` | Update telemetry + trigger Autopilot if enabled |
 | GET | `/forecast?horizon=24` | 24h hourly load forecast |
 | POST | `/optimize` | Generate up to 3 comfort-safe actions |
 | GET | `/simulate?scenario=normal\|peak\|heatwave` | Baseline vs optimized simulation |
+| **POST** | **`/autopilot/toggle`** | **Toggle AI Autopilot on/off for a home** |
+| **POST** | **`/simulate/spike`** | **Simulate high usage spike (demo)** |
 | GET | `/kpis` | Aggregated savings KPIs |
-| GET | `/actions` | Action/recommendation log |
-| GET/PUT | `/preferences` | User comfort preferences |
+| GET | `/actions?source=autopilot\|manual` | Action log with source filter |
+| GET/PUT | `/preferences` | User preferences (incl. autopilot_enabled) |
+| POST | `/layout/import` | Import floor plan from LiDAR/sample |
+| GET | `/layout/state` | Layout geometry for map view |
 | WS | `/ws/live` | Real-time telemetry broadcast |
 
 ---
 
-## Frontend Pages
+## AI Autopilot
 
-1. **Overview** — KPI strip, 24h forecast chart, carbon window, "Dispatch AI Plan" button
-2. **Digital Twin Console** — Room tree, device cards with sparklines, preference editor, recommendations
-3. **Impact Simulator** — Scenario selector, baseline vs optimized chart, delta cards, Judge Mode
-4. **Action Log** — Filterable timeline of AI actions with JSON/CSV export
+When enabled, Autopilot:
+- Monitors telemetry via `/twin/update`
+- Automatically runs the optimizer when conditions are met
+- Stores actions with `source: "autopilot"` for clear attribution
+- Respects guardrails: max 3 actions/day, 2-minute cooldown between runs
+- Always stays within user-defined comfort bounds
 
----
-
-## Running Tests
-
-```bash
-# Backend tests (10 tests)
-python -m pytest backend/tests/ -v
-
-# Frontend type check
-cd frontend && npm run typecheck
-```
+Toggle via API: `POST /autopilot/toggle { home_id: 1, enabled: true }`
 
 ---
 
-## Judge Mode (60–90s demo flow)
+## Mobile App (Expo)
 
-1. Open **Overview** → see KPIs, forecast, carbon window
-2. Click **"Dispatch AI Plan"** → see toast with savings summary
-3. Navigate to **Impact Simulator** → click **"Judge Mode"**
-4. Watch: auto-selects peak, runs optimizer, animates curves, shows delta cards
-5. Navigate to **Digital Twin Console** → adjust comfort band, click "Generate Recommendations"
-6. Navigate to **Action Log** → filter by device, export CSV
+The Expo app provides:
+- **Home screen**: Current usage, KPIs, Autopilot toggle, "Simulate high usage"
+- **Twin screen**: Top-down 2D map, room selection, device details
+- **Scan screen**: LiDAR scan (stub) + 3 predefined sample layouts
+- **Actions screen**: Grouped by Autopilot vs Manual source
 
----
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_URL` | `sqlite:///./horizon.db` | Database connection |
-| `TARIFF_AED_PER_KWH` | `0.38` | Electricity tariff |
-| `EMISSION_FACTOR_KG_PER_KWH` | `0.45` | Carbon emission factor |
-| `DEMO_MODE` | `true` | Fixed random seed for reproducibility |
-
-### Frontend (`frontend/.env`)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VITE_API_BASE_URL` | `http://localhost:8000` | Backend API URL |
-| `VITE_WS_URL` | `ws://localhost:8000/ws/live` | WebSocket URL |
-
----
-
-## iPhone LiDAR Scanning
-
-Horizon includes a companion iOS app that uses Apple's RoomPlan API to scan your home:
-
-1. Open **Horizon Scanner** on a LiDAR-enabled iPhone (12 Pro+)
-2. Tap **Start Scan** and walk around a room
-3. Review the detected walls and furniture
-4. Tap **Send to Horizon** to upload the layout
-5. Open the web app — the **3D digital twin view** appears automatically
-
-No LiDAR? Tap **Use Sample Scan** for a pre-built Villa A layout.
-
-See `/docs/mobile_lidar.md` for full setup instructions.
-
----
-
-## 3D Digital Twin View
-
-The Console page now includes a **Sims-like 3D top-down view** of the home:
-- Floor plans rendered from room polygon geometry
-- Walls extruded to room height
-- Furniture shown as semi-transparent blocks
-- Device markers (AC ❄, EV ⚡, Water ♨, Washer ◎) with status glow
-- Click a room to select it and filter the device list
-- Pan, zoom, and rotate with mouse/touch controls
-
-Works on both desktop and mobile browsers.
-
----
-
-## Mobile-Friendly Design
-
-The web app is fully responsive:
-- **Desktop**: Left sidebar navigation, 3-column Console layout
-- **Mobile (<768px)**: Bottom tab navigation, stacked layout
-- Touch-friendly buttons (44px minimum), swipeable charts
-- 3D view adapts to screen size
+Run with: `cd mobile/horizon-app && npx expo start`
 
 ---
 
@@ -238,18 +182,21 @@ The web app is fully responsive:
 - Single home only (Villa A)
 - SQLite (not production-grade)
 - No authentication
-- No real tariff API integration
-- Optimization is rule-based, not true mathematical optimization
-- iOS app requires LiDAR-enabled iPhone (demo mode available without)
+- LiDAR requires native dev client (falls back to sample layouts in Expo Go)
+- Optimization is rule-based
+
+---
 
 ## Roadmap
 
-- [ ] XGBoost / LSTM forecasting model with real training data
+- [x] AI Autopilot mode
+- [x] Expo mobile app (iOS + Android)
+- [x] LiDAR scan stub + sample layout flow
+- [x] Shared 2D top-down map (web + mobile)
+- [x] Calm, minimal UI redesign
+- [x] Mobile companion app (iOS LiDAR scanner)
+- [ ] XGBoost / LSTM forecasting with real data
 - [ ] Multi-home support
 - [ ] DEWA tariff API integration
 - [ ] Real smart home integration (Home Assistant, Matter)
-- [x] Mobile companion app (iOS LiDAR scanner)
-- [x] 3D digital twin visualization
-- [x] Responsive mobile web design
 - [ ] Battery storage optimization
-- [ ] Multi-room LiDAR scanning in a single session

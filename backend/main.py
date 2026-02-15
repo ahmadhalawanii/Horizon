@@ -51,3 +51,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+# Note: When running with --reload, use:
+#   uvicorn backend.main:app --reload --reload-dir backend --reload-dir ml --reload-dir scripts
+# to avoid scanning mobile/node_modules (causes Windows path-too-long errors)

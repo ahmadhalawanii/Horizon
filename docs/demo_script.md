@@ -1,59 +1,91 @@
-# Horizon Demo Script (60–90 seconds)
+# Horizon — Judge Demo Sequence
 
-## Setup (before demo)
-```bash
-make demo
-```
-This seeds the DB, starts backend, simulator (peak scenario), and frontend.
+## AI Autopilot Demo (Web) — ~60 seconds
 
-Open browser to `http://localhost:5173`
+### Setup
+1. Backend running: `make backend`
+2. Seed data loaded: `make seed`
+3. Frontend running: `make frontend`
+4. Open browser: `http://localhost:5173`
 
----
+### Demo Steps
 
-## Flow
+1. **Overview page** (10s)
+   - Show current usage (kW) and KPI cards
+   - Point out the **Autopilot toggle** in the top-right (currently Off)
 
-### 1. Overview Page (15s)
-- Point out the **KPI strip**: CO₂ saved, peak shaved, cost saved, comfort compliance
-- Show the **24h forecast chart** with confidence band
-- Show the **carbon intensity bar** (green/yellow/red periods)
-- Click **"Dispatch AI Plan"**
-  - Toast shows: "3 actions, est. 7.8 kWh saved"
+2. **Simulate high usage** (10s)
+   - Click **"Simulate high usage"** button
+   - Toast shows spike confirmation
+   - KPIs reflect the simulated load
 
-### 2. Impact Simulator (25s)
-- Navigate to **Impact Simulator**
-- Click **"Judge Mode"** button
-  - Watch it auto-select "Peak" scenario
-  - AI optimization runs (balanced mode)
-  - Baseline (red) vs Optimized (green) curves animate
-  - Delta cards count up: kWh saved, AED saved, CO₂ avoided, peak reduction %
-- Point out the gap between curves = "energy that was saved without any comfort sacrifice"
+3. **Turn on AI Autopilot** (10s)
+   - Click the **AI Autopilot** toggle in the top bar → turns green
+   - Say: "Now Horizon automatically monitors and optimizes"
 
-### 3. Digital Twin Console (25s)
-- Navigate to **Digital Twin Console**
-- Click rooms in the tree: Living Room, Bedroom, Kitchen, Garage
-- Show **device cards**: status, power, setpoint, sparklines updating in real-time
-- Adjust the **comfort range slider** (e.g., 22°C–25°C)
-- Change mode to **"Saver"**
-- Click **"Generate Recommendations"**
-- Show the 3 recommendation cards with impacts
-- Click **"Apply"** on one
+4. **Simulator page** (15s)
+   - Navigate to **Simulator** tab
+   - Click **"Run AI Autopilot Simulation"**
+   - Watch the baseline (red) vs optimized (green) chart
+   - Point out: delta cards show kWh, AED, CO₂ saved
 
-### 4. Action Log (15s)
-- Navigate to **Action Log**
-- Show the timeline of all actions
-- Filter by device type (e.g., "AC" only)
-- Adjust confidence threshold
-- Click **"Export CSV"** — downloaded file
+5. **Actions page** (10s)
+   - Navigate to **Actions** tab
+   - Show actions grouped by **Autopilot** vs **Manual**
+   - Point out: each action has kWh/AED/CO₂ impact
 
-### 5. Closing (10s)
-- "Horizon is a comfort-first energy twin"
-- "No lifestyle nagging — set once, optimize in the background"
-- "Saves X kWh, Y AED, Z kg CO₂ daily — without touching the thermostat"
+6. **Twin page** (5s)
+   - Navigate to **Twin** tab
+   - Show the top-down room map
+   - Tap a room → see device status and power
+
+### Key Talking Points
+- "Autopilot runs the optimizer automatically — users set comfort bounds once, then forget"
+- "High usage simulated. AI Autopilot reshapes the schedule while staying in your comfort range"
+- "Every action is attributed: Autopilot vs Manual"
 
 ---
 
-## Key Talking Points
-- **Comfort is a HARD constraint** — never goes outside your preferred range
-- **3 actions max** — not overwhelming, just smart timing
-- **Real-time digital twin** — see every device, every watt, live
-- **UAE-specific** — tariff rates, extreme heat scenarios, villa-sized loads
+## Mobile Layout + Autopilot Demo (Expo App) — ~45 seconds
+
+### Setup
+1. Backend running on your machine
+2. `cd mobile/horizon-app && npx expo start`
+3. Scan QR code with Expo Go on your phone
+4. Update API base URL in `src/services/api.ts` to your machine's IP
+
+### Demo Steps
+
+1. **Home screen** (10s)
+   - Show current usage and KPI boxes
+   - Toggle Autopilot On → alert confirms
+
+2. **Simulate high usage** (5s)
+   - Tap "Simulate high usage" → alert with result
+
+3. **Scan screen** (15s)
+   - Tap **"Scan home (LiDAR)"**
+   - Show LiDAR info (not available in Expo Go)
+   - Tap **"Villa A"** sample layout → uploads to backend
+   - Alert: "4 rooms created" → navigate to Twin
+
+4. **Twin screen** (10s)
+   - Show the 2D top-down map
+   - Tap rooms → see devices with power readings
+
+5. **Actions screen** (5s)
+   - Show Autopilot vs Manual grouping
+
+### Key Talking Points
+- "Same backend, two frontends: web and mobile"
+- "LiDAR scanning ready for custom dev client; sample layouts for demo"
+- "2 taps to get a floor plan into Horizon"
+
+---
+
+## One-Liner Pitch
+
+> Horizon is an AI-powered digital twin that automatically optimizes your home's energy use.
+> Turn on Autopilot, and it monitors, forecasts, and reshapes your schedule — saving kWh,
+> money, and CO₂ while keeping you comfortable. Works on web and mobile, with LiDAR scanning
+> to import your real floor plan.

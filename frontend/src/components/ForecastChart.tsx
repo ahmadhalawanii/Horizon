@@ -27,7 +27,6 @@ export default function ForecastChart({
     predicted: p.predicted_kw,
     lower: p.lower_kw,
     upper: p.upper_kw,
-    band: [p.lower_kw, p.upper_kw],
   }));
 
   return (
@@ -38,38 +37,38 @@ export default function ForecastChart({
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="forecastGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.02} />
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.06} />
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="time"
-              stroke="#64748b"
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
+              stroke="#94a3b8"
+              tick={{ fill: "#64748b", fontSize: 11 }}
               interval={2}
             />
             <YAxis
-              stroke="#64748b"
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
+              stroke="#94a3b8"
+              tick={{ fill: "#64748b", fontSize: 11 }}
               label={{
                 value: "kW",
                 angle: -90,
                 position: "insideLeft",
-                fill: "#94a3b8",
+                fill: "#64748b",
                 fontSize: 11,
               }}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1a2332",
-                border: "1px solid #1e293b",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e2e8f0",
                 borderRadius: 8,
-                color: "#e2e8f0",
+                color: "#1e293b",
                 fontSize: 12,
               }}
             />
@@ -84,13 +83,13 @@ export default function ForecastChart({
               type="monotone"
               dataKey="lower"
               stroke="none"
-              fill="#0a0e17"
+              fill="#f8f9fb"
               fillOpacity={1}
             />
             <Area
               type="monotone"
               dataKey="predicted"
-              stroke="#06b6d4"
+              stroke="#2563eb"
               strokeWidth={2}
               fill="url(#forecastGrad)"
               fillOpacity={1}
